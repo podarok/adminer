@@ -5,7 +5,7 @@
     "type": "drupal-web-adminer",
     "require": {
         "composer/installers": "~1.0"
-    }
+    },
     "keywords": [
         "database"
     ],
