@@ -1,7 +1,11 @@
 {
-    "name": "vrana/adminer",
+    "name": "podarok/adminer",
     "description": "Database management in a single PHP file.",
     "homepage": "https://www.adminer.org/",
+    "type": "drupal-web-adminer",
+    "require": {
+        "composer/installers": "~1.0"
+    }
     "keywords": [
         "database"
     ],
