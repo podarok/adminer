@@ -13,14 +13,14 @@ class Adminer {
 	}
 
 	/** Connection parameters
-	* @return array ($server, $username, $password)
+	* @return array [$server, $username, $password]
 	*/
 	function credentials() {
 		return array(SERVER, $_GET["username"], get_password());
 	}
 
 	/** Get SSL connection options
-	* @return array array("key" => filename, "cert" => filename, "ca" => filename) or null
+	* @return array ["key" => filename, "cert" => filename, "ca" => filename] or null
 	*/
 	function connectSsl() {
 	}
@@ -118,7 +118,7 @@ class Adminer {
 	*/
 	function loginForm() {
 		global $drivers;
-		echo "<table cellspacing='0' class='layout'>\n";
+		echo "<table class='layout'>\n";
 		echo $this->loginFormField('driver', '<tr><th>' . lang('System') . '<td>', html_select("auth[driver]", $drivers, DRIVER, "loginDriver(this);") . "\n");
 		echo $this->loginFormField('server', '<tr><th>' . lang('Server') . '<td>', '<input name="auth[server]" value="' . h(SERVER) . '" title="hostname[:port]" placeholder="localhost" autocapitalize="off">' . "\n");
 		echo $this->loginFormField('username', '<tr><th>' . lang('Username') . '<td>', '<input name="auth[username]" id="username" autofocus value="' . h($_GET["username"]) . '" autocomplete="username" autocapitalize="off">' . script("qs('#username').form['auth[driver]'].onchange();"));
@@ -311,7 +311,7 @@ class Adminer {
 	function tableStructurePrint($fields) {
 		global $structured_types;
 		echo "<div class='scrollable'>\n";
-		echo "<table cellspacing='0' class='nowrap odds'>\n";
+		echo "<table class='nowrap odds'>\n";
 		echo "<thead><tr><th>" . lang('Column') . "<td>" . lang('Type') . (support("comment") ? "<td>" . lang('Comment') : "") . "</thead>\n";
 		foreach ($fields as $field) {
 			echo "<tr><th>" . h($field["field"]);
@@ -335,7 +335,7 @@ class Adminer {
 	* @return null
 	*/
 	function tableIndexesPrint($indexes) {
-		echo "<table cellspacing='0'>\n";
+		echo "<table>\n";
 		foreach ($indexes as $name => $index) {
 			ksort($index["columns"]); // enforce correct columns order
 			$print = array();
@@ -510,7 +510,7 @@ class Adminer {
 	/** Process columns box in select
 	* @param array selectable columns
 	* @param array
-	* @return array (array(select_expressions), array(group_expressions))
+	* @return array [array(select_expressions), array(group_expressions)]
 	*/
 	function selectColumnsProcess($columns, $indexes) {
 		global $functions, $grouping;
@@ -710,7 +710,7 @@ class Adminer {
 		if ($field["type"] == "enum") {
 			return (isset($_GET["select"]) ? "<label><input type='radio'$attrs value='-1' checked><i>" . lang('original') . "</i></label> " : "")
 				. ($field["null"] ? "<label><input type='radio'$attrs value=''" . ($value !== null || isset($_GET["select"]) ? "" : " checked") . "><i>NULL</i></label> " : "")
-				. enum_input("radio", $attrs, $field, $value, 0) // 0 - empty
+				. enum_input("radio", $attrs, $field, $value, $value === 0 ? 0 : null) // 0 - empty value
 			;
 		}
 		return "";
@@ -955,6 +955,7 @@ class Adminer {
 </span>
 </h1>
 <?php
+		switch_lang();
 		if ($missing == "auth") {
 			$output = "";
 			foreach ((array) $_SESSION["pwds"] as $vendor => $servers) {

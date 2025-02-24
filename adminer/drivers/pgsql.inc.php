@@ -450,23 +450,6 @@ ORDER BY conkey, conname") as $row) {
 		return $return;
 	}
 
-	function constraints($table) {
-		global $on_actions;
-		$return = array();
-		foreach (get_rows("SELECT conname, consrc
-FROM pg_catalog.pg_constraint
-INNER JOIN pg_catalog.pg_namespace ON pg_constraint.connamespace = pg_namespace.oid
-INNER JOIN pg_catalog.pg_class ON pg_constraint.conrelid = pg_class.oid AND pg_constraint.connamespace = pg_class.relnamespace
-WHERE pg_constraint.contype = 'c'
-AND conrelid != 0 -- handle only CONSTRAINTs here, not TYPES
-AND nspname = current_schema()
-AND relname = " . q($table) . "
-ORDER BY connamespace, conname") as $row) {
-			$return[$row['conname']] = $row['consrc'];
-		}
-		return $return;
-	}
-
 	function view($name) {
 		global $connection;
 		return array("select" => trim($connection->result("SELECT pg_get_viewdef(" . $connection->result("SELECT oid FROM pg_class WHERE relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = current_schema()) AND relname = " . q($name)) . ")")));
@@ -790,7 +773,6 @@ AND typelem = 0"
 		$fields = fields($table);
 		$indexes = indexes($table);
 		ksort($indexes);
-		$constraints = constraints($table);
 
 		if (!$status || empty($fields)) {
 			return false;
@@ -833,8 +815,18 @@ AND typelem = 0"
 			}
 		}
 
+		$constraints = get_key_vals("SELECT conname, " . (min_version(8) ? "pg_get_constraintdef(pg_constraint.oid)" : "CONCAT('CHECK ', consrc)") . "
+FROM pg_catalog.pg_constraint
+INNER JOIN pg_catalog.pg_namespace ON pg_constraint.connamespace = pg_namespace.oid
+INNER JOIN pg_catalog.pg_class ON pg_constraint.conrelid = pg_class.oid AND pg_constraint.connamespace = pg_class.relnamespace
+WHERE pg_constraint.contype = 'c'
+AND conrelid != 0 -- handle only CONSTRAINTs here, not TYPES
+AND nspname = current_schema()
+AND relname = " . q($table) . "
+ORDER BY connamespace, conname"
+		);
 		foreach ($constraints as $conname => $consrc) {
-			$return_parts[] = "CONSTRAINT " . idf_escape($conname) . " CHECK $consrc";
+			$return_parts[] = "CONSTRAINT " . idf_escape($conname) . " $consrc";
 		}
 
 		$return .= implode(",\n    ", $return_parts) . "\n) WITH (oids = " . ($status['Oid'] ? 'true' : 'false') . ");";
@@ -888,10 +880,10 @@ AND typelem = 0"
 	}
 
 	function is_c_style_escapes() {
-		static $c_style = null;
+		global $connection;
+		static $c_style;
 		if ($c_style === null) {
-			$vals = get_vals("SHOW standard_conforming_strings");
-			$c_style = $vals[0] == "off";
+			$c_style = ($connection->result("SHOW standard_conforming_strings") == "off");
 		}
 		return $c_style;
 	}
@@ -911,7 +903,7 @@ AND typelem = 0"
 	}
 
 	function support($feature) {
-		return preg_match('~^(database|table|columns|sql|indexes|descidx|comment|view|' . (min_version(9.3) ? 'materializedview|' : '') . 'scheme|routine|processlist|sequence|trigger|type|variables|drop_col|kill|dump)$~', $feature);
+		return preg_match('~^(check|database|table|columns|sql|indexes|descidx|comment|view|' . (min_version(9.3) ? 'materializedview|' : '') . 'scheme|routine|processlist|sequence|trigger|type|variables|drop_col|kill|dump)$~', $feature);
 	}
 
 	function kill_process($val) {

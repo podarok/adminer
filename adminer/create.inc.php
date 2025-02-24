@@ -186,7 +186,7 @@ foreach ($engines as $engine) {
 
 <?php if (support("columns")) { ?>
 <div class="scrollable">
-<table cellspacing="0" id="edit-fields" class="nowrap">
+<table id="edit-fields" class="nowrap">
 <?php
 edit_fields($row["fields"], $collations, "TABLE", $foreign_keys);
 ?>
@@ -194,7 +194,7 @@ edit_fields($row["fields"], $collations, "TABLE", $foreign_keys);
 <?php echo script("editFields();"); ?>
 </div>
 <p>
-<?php echo lang('Auto Increment'); ?>: <input type="number" name="Auto_increment" size="6" value="<?php echo h($row["Auto_increment"]); ?>">
+<?php echo lang('Auto Increment'); ?>: <input type="number" name="Auto_increment" class="size" value="<?php echo h($row["Auto_increment"]); ?>">
 <?php echo checkbox("defaults", 1, ($_POST ? $_POST["defaults"] : adminer_setting("defaults")), lang('Default values'), "columnShow(this.checked, 5)", "jsonly"); ?>
 <?php
 $comments = ($_POST ? $_POST["comments"] : adminer_setting("comments"));
@@ -221,7 +221,7 @@ if (support("partitioning")) {
 <?php echo "<select name='partition_by'>" . optionlist(array("" => "") + $partition_by, $row["partition_by"]) . "</select>" . on_help("getTarget(event).value.replace(/./, 'PARTITION BY \$&')", 1) . script("qsl('select').onchange = partitionByChange;"); ?>
 (<input name="partition" value="<?php echo h($row["partition"]); ?>">)
 <?php echo lang('Partitions'); ?>: <input type="number" name="partitions" class="size<?php echo ($partition_table || !$row["partition_by"] ? " hidden" : ""); ?>" value="<?php echo h($row["partitions"]); ?>">
-<table cellspacing="0" id="partition-table"<?php echo ($partition_table ? "" : " class='hidden'"); ?>>
+<table id="partition-table"<?php echo ($partition_table ? "" : " class='hidden'"); ?>>
 <thead><tr><th><?php echo lang('Partition name'); ?><th><?php echo lang('Values'); ?></thead>
 <?php
 foreach ($row["partition_names"] as $key => $val) {

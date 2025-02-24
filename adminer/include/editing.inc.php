@@ -19,7 +19,7 @@ function select($result, $connection2 = null, $orgtables = array(), $limit = 0) 
 	for ($i=0; (!$limit || $i < $limit) && ($row = $result->fetch_row()); $i++) {
 		if (!$i) {
 			echo "<div class='scrollable'>\n";
-			echo "<table cellspacing='0' class='nowrap odds'>\n";
+			echo "<table class='nowrap odds'>\n";
 			echo "<thead><tr>";
 			for ($j=0; $j < count($row); $j++) {
 				$field = $result->fetch_field();
@@ -98,7 +98,7 @@ function select($result, $connection2 = null, $orgtables = array(), $limit = 0) 
 
 /** Get referencable tables with single column primary key except self
 * @param string
-* @return array ($table_name => $field)
+* @return array [$table_name => $field]
 */
 function referencable_primary($self) {
 	$return = array(); // table_name => field
@@ -209,16 +209,15 @@ function json_row($key, $val = null) {
 function edit_type($key, $field, $collations, $foreign_keys = array(), $extra_types = array()) {
 	global $structured_types, $types, $unsigned, $on_actions;
 	$type = $field["type"];
-	?>
-<td><select name="<?php echo h($key); ?>[type]" class="type" aria-labelledby="label-type"><?php
-if ($type && !isset($types[$type]) && !isset($foreign_keys[$type]) && !in_array($type, $extra_types)) {
-	$extra_types[] = $type;
-}
-if ($foreign_keys) {
-	$structured_types[lang('Foreign keys')] = $foreign_keys;
-}
-echo optionlist(array_merge($extra_types, $structured_types), $type);
-?></select><td><input
+	?><td><select name="<?php echo h($key); ?>[type]" class="type" aria-labelledby="label-type"><?php
+	if ($type && !isset($types[$type]) && !isset($foreign_keys[$type]) && !in_array($type, $extra_types)) {
+		$extra_types[] = $type;
+	}
+	if ($foreign_keys) {
+		$structured_types[lang('Foreign keys')] = $foreign_keys;
+	}
+	echo optionlist(array_merge($extra_types, $structured_types), $type);
+	?></select><td><input
 	name="<?php echo h($key); ?>[length]"
 	value="<?php echo h($field["length"]); ?>"
 	size="3"
@@ -278,7 +277,7 @@ function process_type($field, $collate = "COLLATE") {
 /** Create SQL string from field
 * @param array basic field information
 * @param array information about field type
-* @return array array("field", "type", "NULL", "DEFAULT", "ON UPDATE", "COMMENT", "AUTO_INCREMENT")
+* @return array ["field", "type", "NULL", "DEFAULT", "ON UPDATE", "COMMENT", "AUTO_INCREMENT"]
 */
 function process_field($field, $type_field) {
 	// MariaDB exports CURRENT_TIMESTAMP as a function.
@@ -522,14 +521,28 @@ function create_routine($routine, $row) {
 			$set[] = (preg_match("~^($inout)\$~", $field["inout"]) ? "$field[inout] " : "") . idf_escape($field["field"]) . process_type($field, "CHARACTER SET");
 		}
 	}
-	$definition = rtrim("\n$row[definition]", ";");
+	$definition = rtrim($row["definition"], ";");
 	return "CREATE $routine "
 		. idf_escape(trim($row["name"]))
 		. " (" . implode(", ", $set) . ")"
-		. (isset($_GET["function"]) ? " RETURNS" . process_type($row["returns"], "CHARACTER SET") : "")
+		. ($routine == "FUNCTION" ? " RETURNS" . process_type($row["returns"], "CHARACTER SET") : "")
 		. ($row["language"] ? " LANGUAGE $row[language]" : "")
-		. ($jush == "pgsql" ? " AS " . q($definition) : "$definition;")
+		. ($jush == "pgsql" ? " AS " . q($definition) : "\n$definition;")
 	;
+}
+
+/** Get defined check constraints
+* @param string
+* @return array [$name => $clause]
+*/
+function check_constraints($table) {
+	// MariaDB contains CHECK_CONSTRAINTS.TABLE_NAME, MySQL and PostrgreSQL not
+	return get_key_vals("SELECT c.CONSTRAINT_NAME, CHECK_CLAUSE
+FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS c
+JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS t ON c.CONSTRAINT_SCHEMA = t.CONSTRAINT_SCHEMA AND c.CONSTRAINT_NAME = t.CONSTRAINT_NAME
+WHERE c.CONSTRAINT_SCHEMA = " . q($_GET["ns"] != "" ? $_GET["ns"] : DB) . "
+AND t.TABLE_NAME = " . q($table) . "
+AND CHECK_CLAUSE NOT LIKE '% IS NOT NULL'"); // ignore default IS NOT NULL checks in PostrgreSQL
 }
 
 /** Remove current user definer from SQL command
@@ -541,7 +554,7 @@ function remove_definer($query) {
 }
 
 /** Format foreign key to use in SQL query
-* @param array ("db" => string, "ns" => string, "table" => string, "source" => array, "target" => array, "on_delete" => one of $on_actions, "on_update" => one of $on_actions)
+* @param array ["db" => string, "ns" => string, "table" => string, "source" => array, "target" => array, "on_delete" => one of $on_actions, "on_update" => one of $on_actions]
 * @return string
 */
 function format_foreign_key($foreign_key) {

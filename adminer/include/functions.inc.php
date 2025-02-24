@@ -202,7 +202,11 @@ function optionlist($options, $selected = null, $use_keys = false) {
 			$opts = $v;
 		}
 		foreach ($opts as $key => $val) {
-			$return .= '<option' . ($use_keys || is_string($key) ? ' value="' . h($key) . '"' : '') . (($use_keys || is_string($key) ? (string) $key : $val) === (string) $selected ? ' selected' : '') . '>' . h($val);
+			$return .= '<option'
+				. ($use_keys || is_string($key) ? ' value="' . h($key) . '"' : '')
+				. ($selected !== null && ($use_keys || is_string($key) ? (string) $key : $val) === $selected ? ' selected' : '')
+				. '>' . h($val)
+			;
 		}
 		if (is_array($v)) {
 			$return .= '</optgroup>';
@@ -388,7 +392,7 @@ function get_rows($query, $connection2 = null, $error = "<p class='error'>") {
 		while ($row = $result->fetch_assoc()) {
 			$return[] = $row;
 		}
-	} elseif (!$result && !is_object($connection2) && $error && defined("PAGE_HEADER")) {
+	} elseif (!$result && !is_object($connection2) && $error && (defined("PAGE_HEADER") || $error == "-- ")) {
 		echo $error . error() . "\n";
 	}
 	return $return;
@@ -847,7 +851,7 @@ function table_status1($table, $fast = false) {
 
 /** Find out foreign keys for each column
 * @param string
-* @return array array($col => array())
+* @return array [$col => array()]
 */
 function column_foreign_keys($table) {
 	global $adminer;
@@ -1213,7 +1217,7 @@ function select_value($val, $link, $field, $text_length) {
 				. "<td>" . select_value($v, $link, $field, $text_length)
 			;
 		}
-		return "<table cellspacing='0'>$return</table>";
+		return "<table>$return</table>";
 	}
 	if (!$link) {
 		$link = $adminer->selectLink($val, $field);
@@ -1406,7 +1410,7 @@ function edit_form($table, $fields, $row, $update) {
 	if (!$fields) {
 		echo "<p class='error'>" . lang('You have no privileges to update this table.') . "\n";
 	} else {
-		echo "<table cellspacing='0' class='layout'>" . script("qsl('table').onkeydown = editingKeydown;");
+		echo "<table class='layout'>" . script("qsl('table').onkeydown = editingKeydown;");
 		foreach ($fields as $name => $field) {
 			echo "<tr><th>" . $adminer->fieldName($field);
 			$default = $_GET["set"][bracket_escape($name)];

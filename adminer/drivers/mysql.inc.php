@@ -384,6 +384,11 @@ if (!defined("DRIVER")) {
 				$types["uuid"] = 128;
 				$edit_functions[0]['uuid'] = 'uuid';
 			}
+			if (min_version(9, '', $connection)) {
+				$structured_types[lang('Numbers')][] = "vector";
+				$types["vector"] = 16383;
+				$edit_functions[0]['vector'] = 'string_to_vector';
+			}
 			return $connection;
 		}
 		$return = $connection->error;
@@ -476,7 +481,7 @@ if (!defined("DRIVER")) {
 	}
 
 	/** Get tables list
-	* @return array array($name => $type)
+	* @return array [$name => $type]
 	*/
 	function tables_list() {
 		return get_key_vals(min_version(5)
@@ -487,7 +492,7 @@ if (!defined("DRIVER")) {
 
 	/** Count tables in all databases
 	* @param array
-	* @return array array($db => $tables)
+	* @return array arra($db => $tables)
 	*/
 	function count_tables($databases) {
 		$return = array();
@@ -500,7 +505,7 @@ if (!defined("DRIVER")) {
 	/** Get table status
 	* @param string
 	* @param bool return only "Name", "Engine" and "Comment" fields
-	* @return array array($name => array("Name" => , "Engine" => , "Comment" => , "Oid" => , "Rows" => , "Collation" => , "Auto_increment" => , "Data_length" => , "Index_length" => , "Data_free" => )) or only inner array with $name
+	* @return array [$name => array("Name" => , "Engine" => , "Comment" => , "Oid" => , "Rows" => , "Collation" => , "Auto_increment" => , "Data_length" => , "Index_length" => , "Data_free" => )] or only inner array with $name
 	*/
 	function table_status($name = "", $fast = false) {
 		$return = array();
@@ -544,7 +549,7 @@ if (!defined("DRIVER")) {
 
 	/** Get information about fields
 	* @param string
-	* @return array array($name => array("field" => , "full_type" => , "type" => , "length" => , "unsigned" => , "default" => , "null" => , "auto_increment" => , "on_update" => , "collation" => , "privileges" => , "comment" => , "primary" => ))
+	* @return array [$name => array("field" => , "full_type" => , "type" => , "length" => , "unsigned" => , "default" => , "null" => , "auto_increment" => , "on_update" => , "collation" => , "privileges" => , "comment" => , "primary" => )]
 	*/
 	function fields($table) {
 		$return = array();
@@ -574,7 +579,7 @@ if (!defined("DRIVER")) {
 	/** Get table indexes
 	* @param string
 	* @param string Min_DB to use
-	* @return array array($key_name => array("type" => , "columns" => array(), "lengths" => array(), "descs" => array()))
+	* @return array [$key_name => array("type" => , "columns" => array(), "lengths" => array(), "descs" => array())]
 	*/
 	function indexes($table, $connection2 = null) {
 		$return = array();
@@ -590,7 +595,7 @@ if (!defined("DRIVER")) {
 
 	/** Get foreign keys in table
 	* @param string
-	* @return array array($name => array("db" => , "ns" => , "table" => , "source" => array(), "target" => array(), "on_delete" => , "on_update" => ))
+	* @return array [$name => array("db" => , "ns" => , "table" => , "source" => array(), "target" => array(), "on_delete" => , "on_update" => )]
 	*/
 	function foreign_keys($table) {
 		global $connection, $on_actions;
@@ -617,7 +622,7 @@ if (!defined("DRIVER")) {
 
 	/** Get view SELECT
 	* @param string
-	* @return array array("select" => )
+	* @return array ["select" => ]
 	*/
 	function view($name) {
 		global $connection;
@@ -866,7 +871,7 @@ if (!defined("DRIVER")) {
 
 	/** Get information about trigger
 	* @param string trigger name
-	* @return array array("Trigger" => , "Timing" => , "Event" => , "Of" => , "Type" => , "Statement" => )
+	* @return array ["Trigger" => , "Timing" => , "Event" => , "Of" => , "Type" => , "Statement" => ]
 	*/
 	function trigger($name) {
 		if ($name == "") {
@@ -878,7 +883,7 @@ if (!defined("DRIVER")) {
 
 	/** Get defined triggers
 	* @param string
-	* @return array array($name => array($timing, $event))
+	* @return array [$name => array($timing, $event)]
 	*/
 	function triggers($table) {
 		$return = array();
@@ -889,7 +894,7 @@ if (!defined("DRIVER")) {
 	}
 
 	/** Get trigger options
-	* @return array ("Timing" => array(), "Event" => array(), "Type" => array())
+	* @return array ["Timing" => array(), "Event" => array(), "Type" => array()]
 	*/
 	function trigger_options() {
 		return array(
@@ -902,7 +907,7 @@ if (!defined("DRIVER")) {
 	/** Get information about stored routine
 	* @param string
 	* @param string "FUNCTION" or "PROCEDURE"
-	* @return array ("fields" => array("field" => , "type" => , "length" => , "unsigned" => , "inout" => , "collation" => ), "returns" => , "definition" => , "language" => )
+	* @return array ["fields" => array("field" => , "type" => , "length" => , "unsigned" => , "inout" => , "collation" => ), "returns" => , "definition" => , "language" => ]
 	*/
 	function routine($name, $type) {
 		global $connection, $enum_length, $inout, $types;
@@ -926,19 +931,18 @@ if (!defined("DRIVER")) {
 				"collation" => strtolower($param[9]),
 			);
 		}
-		if ($type != "FUNCTION") {
-			return array("fields" => $fields, "definition" => $match[11]);
-		}
 		return array(
 			"fields" => $fields,
+			"comment" => $connection->result("SELECT ROUTINE_COMMENT FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = " . q(DB) . " AND ROUTINE_NAME = " . q($name)),
+		) + ($type != "FUNCTION" ? array("definition" => $match[11]) : array(
 			"returns" => array("type" => $match[12], "length" => $match[13], "unsigned" => $match[15], "collation" => $match[16]),
 			"definition" => $match[17],
-			"language" => "SQL", // available in information_schema.ROUTINES.PARAMETER_STYLE
-		);
+			"language" => "SQL", // available in information_schema.ROUTINES.BODY_STYLE
+		));
 	}
 
 	/** Get list of routines
-	* @return array ("SPECIFIC_NAME" => , "ROUTINE_NAME" => , "ROUTINE_TYPE" => , "DTD_IDENTIFIER" => )
+	* @return array ["SPECIFIC_NAME" => , "ROUTINE_NAME" => , "ROUTINE_TYPE" => , "DTD_IDENTIFIER" => ]
 	*/
 	function routines() {
 		return get_rows("SELECT ROUTINE_NAME AS SPECIFIC_NAME, ROUTINE_NAME, ROUTINE_TYPE, DTD_IDENTIFIER FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = " . q(DB));
@@ -1060,33 +1064,34 @@ if (!defined("DRIVER")) {
 	}
 
 	/** Get server variables
-	* @return array ($name => $value)
+	* @return array [$name => $value]
 	*/
 	function show_variables() {
 		return get_key_vals("SHOW VARIABLES");
 	}
 
-	/** Checks if C-style escapes are supported
+	/** Check if C-style escapes are supported
 	* @return bool
 	*/
 	function is_c_style_escapes() {
-		static $c_style = null;
+		global $connection;
+		static $c_style;
 		if ($c_style === null) {
-			$variables = get_key_vals("SHOW VARIABLES LIKE 'sql_mode'");
-			$c_style = strpos($variables["sql_mode"], 'NO_BACKSLASH_ESCAPES') === false;
+			$sql_mode = $connection->result("SHOW VARIABLES LIKE 'sql_mode'", 1);
+			$c_style = (strpos($sql_mode, 'NO_BACKSLASH_ESCAPES') === false);
 		}
 		return $c_style;
 	}
 
 	/** Get process list
-	* @return array ($row)
+	* @return array [$row]
 	*/
 	function process_list() {
 		return get_rows("SHOW FULL PROCESSLIST");
 	}
 
 	/** Get status variables
-	* @return array ($name => $value)
+	* @return array [$name => $value]
 	*/
 	function show_status() {
 		return get_key_vals("SHOW STATUS");
@@ -1128,11 +1133,11 @@ if (!defined("DRIVER")) {
 	}
 
 	/** Check whether a feature is supported
-	* @param string "comment", "copy", "database", "descidx", "drop_col", "dump", "event", "indexes", "kill", "materializedview", "partitioning", "privileges", "procedure", "processlist", "routine", "scheme", "sequence", "status", "table", "trigger", "type", "variables", "view", "view_trigger"
+	* @param string "check", "comment", "copy", "database", "descidx", "drop_col", "dump", "event", "indexes", "kill", "materializedview", "partitioning", "privileges", "procedure", "processlist", "routine", "scheme", "sequence", "status", "table", "trigger", "type", "variables", "view", "view_trigger"
 	* @return bool
 	*/
 	function support($feature) {
-		return !preg_match("~scheme|sequence|type|view_trigger|materializedview" . (min_version(8) ? "" : "|descidx" . (min_version(5.1) ? "" : "|event|partitioning" . (min_version(5) ? "" : "|routine|trigger|view"))) . "~", $feature);
+		return !preg_match("~scheme|sequence|type|view_trigger|materializedview" . (min_version(8) ? "" : "|descidx" . (min_version(5.1) ? "" : "|event|partitioning" . (min_version(5) ? "" : "|routine|trigger|view"))) . (min_version('8.0.16', '10.2.1') ? "" : "|check") . "~", $feature);
 	}
 
 	/** Kill a process
@@ -1159,14 +1164,14 @@ if (!defined("DRIVER")) {
 	}
 
 	/** Get driver config
-	* @return array array('possible_drivers' => , 'jush' => , 'types' => , 'structured_types' => , 'unsigned' => , 'operators' => , 'functions' => , 'grouping' => , 'edit_functions' => )
+	* @return array ['possible_drivers' => , 'jush' => , 'types' => , 'structured_types' => , 'unsigned' => , 'operators' => , 'functions' => , 'grouping' => , 'edit_functions' => ]
 	*/
 	function driver_config() {
-		$types = array(); ///< @var array ($type => $maximum_unsigned_length, ...)
-		$structured_types = array(); ///< @var array ($description => array($type, ...), ...)
+		$types = array(); ///< @var array [$type => $maximum_unsigned_length, ...]
+		$structured_types = array(); ///< @var array [$description => array($type, ...), ...]
 		foreach (array(
 			lang('Numbers') => array("tinyint" => 3, "smallint" => 5, "mediumint" => 8, "int" => 10, "bigint" => 20, "decimal" => 66, "float" => 12, "double" => 21),
-			lang('Date and time') => array("date" => 10, "datetime" => 19, "timestamp" => 19, "time" => 10, "year" => 4),
+			lang('Date and time') => array("dat`e" => 10, "datetime" => 19, "timestamp" => 19, "time" => 10, "year" => 4),
 			lang('Strings') => array("char" => 255, "varchar" => 65535, "tinytext" => 255, "text" => 65535, "mediumtext" => 16777215, "longtext" => 4294967295),
 			lang('Lists') => array("enum" => 65535, "set" => 64),
 			lang('Binary') => array("bit" => 20, "binary" => 255, "varbinary" => 65535, "tinyblob" => 255, "blob" => 65535, "mediumblob" => 16777215, "longblob" => 4294967295),

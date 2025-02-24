@@ -20,6 +20,7 @@ function page_header($title, $error = "", $breadcrumb = array(), $title2 = "") {
 <html lang="<?php echo $LANG; ?>" dir="<?php echo lang('ltr'); ?>">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width">
 <title><?php echo $title_page; ?></title>
 <link rel="stylesheet" type="text/css" href="../adminer/static/default.css">
 <?php echo script_src("../adminer/static/functions.js"); ?>
@@ -178,7 +179,10 @@ function page_footer($missing = "") {
 	?>
 </div>
 
-<?php switch_lang(); ?>
+<div id="menu">
+<?php $adminer->navigation($missing); ?>
+</div>
+
 <?php if ($missing != "auth") { ?>
 <form action="" method="post">
 <p class="logout">
@@ -188,9 +192,6 @@ function page_footer($missing = "") {
 </p>
 </form>
 <?php } ?>
-<div id="menu">
-<?php $adminer->navigation($missing); ?>
-</div>
 <?php
 	echo script("setupSubmitHighlight(document);");
 }
